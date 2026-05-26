@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circles — Share Only What You Want</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink: #0e0e0e;
+      --cream: #f5f0e8;
+      --warm: #e8e0d0;
+      --accent: #c8a96e;
+      --accent-deep: #a07840;
+      --muted: #7a7060;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--cream);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    .font-display { font-family: 'Playfair Display', serif; }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.5;
+    }
+
+    /* Gradient mesh background */
+    .mesh-bg {
+      background: 
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(200, 169, 110, 0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 80% 80%, rgba(200, 169, 110, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 60% 30%, rgba(160, 120, 64, 0.08) 0%, transparent 50%),
+        var(--cream);
+    }
+
+    .dark-section {
+      background-color: var(--ink);
+      color: var(--cream);
+    }
+
+    .dark-section::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 50% 60% at 80% 20%, rgba(200, 169, 110, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 20% 90%, rgba(200, 169, 110, 0.07) 0%, transparent 55%);
+      pointer-events: none;
+    }
+
+    .accent-line {
+      display: inline-block;
+      width: 48px;
+      height: 2px;
+      background: var(--accent);
+      vertical-align: middle;
+      margin-right: 12px;
+    }
+
+    /* Floating card effect */
+    .profile-card {
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(200, 169, 110, 0.25);
+      box-shadow: 0 24px 64px rgba(14,14,14,0.12), 0 4px 16px rgba(14,14,14,0.06);
+    }
+
+    .profile-card-dark {
+      background: rgba(30,28,24,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(200, 169, 110, 0.20);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary {
+      background: var(--ink);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: translateX(-102%);
+      transition: transform 0.3s ease;
+    }
+
+    .btn-primary:hover::after { transform: translateX(0); }
+    .btn-primary span { position: relative; z-index: 1; }
+
+    .btn-accent {
+      background: var(--accent);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: all 0.3s ease;
+    }
+    .btn-accent:hover { background: var(--accent-deep); color: white; }
+
+    /* Toggle switch */
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: #d0c8b8;
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle-switch.active { background: var(--accent); }
+    .toggle-knob {
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: left 0.3s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.active .toggle-knob { left: 23px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--cream); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    /* Divider wave */
+    .wave-divider { line-height: 0; }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      transition: all 0.4s ease;
+    }
+    nav.scrolled {
+      background: rgba(245,240,232,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(200,169,110,0.20);
+    }
+
+    /* Pricing card hover */
+    .price-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .price-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 32px 80px rgba(14,14,14,0.18);
+    }
+
+    /* Animated underline */
+    .hover-underline {
+      position: relative;
+      text-decoration: none;
+    }
+    .hover-underline::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+    .hover-underline:hover::after { width: 100%; }
+
+    /* Feature number */
+    .feature-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 5rem;
+      font-weight: 900;
+      line-height: 1;
+      color: rgba(200,169,110,0.15);
+      position: absolute;
+      top: -20px;
+      right: -10px;
+      pointer-events: none;
+    }
+
+    /* Social icon pill */
+    .social-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* Circle badge */
+    .circle-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    /* Fade in animation */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Stagger delays */
+    .delay-1 { transition-delay: 0.1s; }
+    .delay-2 { transition-delay: 0.2s; }
+    .delay-3 { transition-delay: 0.3s; }
+    .delay-4 { transition-delay: 0.4s; }
+
+    /* Mobile menu */
+    #mobile-menu {
+      display: none;
+    }
+    #mobile-menu.open {
+      display: flex;
+    }
+  </style>
+</head>
+<body class="mesh-bg">
+
+  <!-- NAV -->
+  <nav id="navbar" class="px-6 lg:px-16 py-5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5 group">
+        <div class="w-8 h-8 rounded-full bg-ink flex items-center justify-center" style="background: var(--ink);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="8" r="6" stroke="#c8a96e" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="3" stroke="#c8a96e" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="1" fill="#c8a96e"/>
+          </svg>
+        </div>
+        <span class="font-display font-bold text-xl" style="color: var(--ink);">Circles</span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-10">
+        <a href="#how" class="hover-underline text-sm font-medium" style="color: var(--muted);">How It Works</a>
+        <a href="#features" class="hover-underline text-sm font-medium" style="color: var(--muted);">Features</a>
+        <a href="#pricing" class="hover-underline text-sm font-medium" style="color: var(--muted);">Pricing</a>
+        <a href="#" class="btn-primary px-5 py-2.5 rounded-full text-sm"><span>Get Early Access</span></a>
+      </div>
+
+      <button id="menu-btn" class="md:hidden w-9 h-9 flex flex-col justify-center gap-1.5 items-center">
+        <span class="w-5 h-0.5 block rounded" style="background: var(--ink);"></span>
+        <span class="w-5 h-0.5 block rounded" style="background: var(--ink);"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="flex-col items-center gap-6 py-8 md:hidden">
+      <a href="#how" class="text-sm font-medium" style="color: var(--muted);" onclick="closeMobileMenu()">How It Works</a>
+      <a href="#features" class="text-sm font-medium" style="color: var(--muted);" onclick="closeMobileMenu()">Features</a>
+      <a href="#pricing" class="text-sm font-medium" style="color: var(--muted);" onclick="closeMobileMenu()">Pricing</a>
+      <a href="#" class="btn-primary px-5 py-2.5 rounded-full text-sm"><span>Get Early Access</span></a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex items-center pt-24 pb-16 px-6 lg:px-16 overflow-hidden">
+
+    <!-- Background rings -->
+    <div class="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/3 pointer-events-none" style="width: 700px; height: 700px;">
+      <div class="absolute inset-0 rounded-full border opacity-10" style="border-color: var(--accent);"></div>
+      <div class="absolute inset-12 rounded-full border opacity-15" style="border-color: var(--accent);"></div>
+      <div class="absolute inset-24 rounded-full border opacity-20" style="border-color: var(--accent);"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center">
+      <!-- Left: Copy -->
+      <div class="relative z-10">
+        <div class="flex items-center gap-3 mb-8">
+          <span class="accent-line"></span>
+          <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">Controlled Connection</span>
+        </div>
+
+        <h1 class="font-display text-5xl md:text-6xl xl:text-7xl leading-[1.05] mb-8" style="color: var(--ink);">
+          Share only<br/>
+          <em>your chosen</em><br/>
+          <span class="relative">
+            circles.
+            <svg class="absolute -bottom-2 left-0 w-full" height="8" viewBox="0 0 200 8" preserveAspectRatio="none">
+              <path d="M0,5 Q50,0 100,5 Q150,10 200,5" stroke="#c8a96e" stroke-width="2" fill="none"/>
+            </svg>
+          </span>
+        </h1>
+
+        <p class="text-lg leading-relaxed mb-10 max-w-md" style="color: var(--muted);">
+          Meet someone new. Show them exactly what they need — nothing more. One smart link, infinite control over your digital first impression.
+        </p>
+
+        <div class="flex flex-wrap gap-4 mb-12">
+          <a href="#" class="btn-primary px-7 py-3.5 rounded-full text-sm flex items-center gap-2.5 group">
+            <span>Start for Free</span>
+            <i class="bi bi-arrow-right relative z-10 group-hover:translate-x-1 transition-transform"></i>
+          </a>
+          <a href="#how" class="flex items-center gap-2.5 text-sm font-medium px-7 py-3.5 rounded-full border hover:bg-white/60 transition-all" style="border-color: rgba(14,14,14,0.15); color: var(--ink);">
+            <i class="bi bi-play-circle"></i>
+            See How It Works
+          </a>
+        </div>
+
+        <div class="flex items-center gap-6 text-sm" style="color: var(--muted);">
+          <div class="flex -space-x-2">
+            <div class="w-8 h-8 rounded-full border-2 border-cream flex items-center justify-center text-xs font-bold" style="background: #c8a96e; border-color: var(--cream); color: white;">J</div>
+            <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold" style="background: #7a7060; border-color: var(--cream); color: white;">M</div>
+            <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold" style="background: #0e0e0e; border-color: var(--cream); color: white;">S</div>
+          </div>
+          <span><strong style="color: var(--ink);">4,200+</strong> privacy-first professionals already joined</span>
+        </div>
+      </div>
+
+      <!-- Right: Interactive UI Demo -->
+      <div class="relative flex justify-center lg:justify-end z-10">
+        <!-- Main card -->
+        <div class="relative profile-card rounded-3xl p-7 w-full max-w-sm">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg" style="background: linear-gradient(135deg, var(--accent), var(--accent-deep));">A</div>
+              <div>
+                <p class="font-semibold text-sm" style="color: var(--ink);">Alex Rivera</p>
+                <p class="text-xs" style="color: var(--muted);">Product Designer</p>
+              </div>
+            </div>
+            <div class="px-3 py-1 rounded-full text-xs font-medium" style="background: rgba(200,169,110,0.15); color: var(--accent-deep);">
+              <i class="bi bi-shield-check mr-1"></i>Work Circle
+            </div>
+          </div>
+
+          <p class="text-xs uppercase tracking-wider font-medium mb-4" style="color: var(--muted);">Shared with you</p>
+
+          <!-- Social toggles -->
+          <div class="space-y-3" id="social-list">
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background: rgba(14,14,14,0.04);">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: #0077B5;">
+                  <i class="bi bi-linkedin text-white text-sm"></i>
+                </div>
+                <span class="text-sm font-medium" style="color: var(--ink);">LinkedIn</span>
+              </div>
+              <div class="toggle-switch active" data-active="true" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background: rgba(14,14,14,0.04);">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: #1DA1F2;">
+                  <i class="bi bi-twitter-x text-white text-sm"></i>
+                </div>
+                <span class="text-sm font-medium" style="color: var(--ink);">Twitter / X</span>
+              </div>
+              <div class="toggle-switch active" data-active="true" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background: rgba(14,14,14,0.04);">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">
+                  <i class="bi bi-instagram text-white text-sm"></i>
+                </div>
+                <span class="text-sm font-medium" style="color: var(--ink);">Instagram</span>
+              </div>
+              <div class="toggle-switch" data-active="false" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl" style="background: rgba(14,14,14,0.04);">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: #111;">
+                  <i class="bi bi-tiktok text-white text-sm"></i>
+                </div>
+                <span class="text-sm font-medium" style="color: var(--ink);">TikTok</span>
+              </div>
+              <div class="toggle-switch" data-active="false" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-5 border-t" style="border-color: rgba(14,14,14,0.08);">
+            <button class="w-full btn-primary rounded-xl py-3 text-sm flex items-center justify-center gap-2">
+              <i class="bi bi-qr-code relative z-10"></i>
+              <span>Share Work Circle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating badge 1 -->
+        <div class="absolute -top-4 -left-6 profile-card rounded-2xl px-4 py-3 hidden lg:flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(200,169,110,0.15);">
+            <i class="bi bi-lock-fill text-sm" style="color: var(--accent);"></i>
+          </div>
+          <div>
+            <p class="text-xs font-semibold" style="color: var(--ink);">Privacy Protected</p>
+            <p class="text-xs" style="color: var(--muted);">End-to-end controlled</p>
+          </div>
+        </div>
+
+        <!-- Floating badge 2 -->
+        <div class="absolute -bottom-4 -right-4 profile-card rounded-2xl px-4 py-3 hidden lg:flex items-center gap-3">
+          <i class="bi bi-circle-fill text-green-500 text-xs"></i>
+          <p class="text-xs font-semibold" style="color: var(--ink);">3 Circles Active</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGO STRIP -->
+  <section class="py-10 px-6 lg:px-16" style="border-top: 1px solid rgba(14,14,14,0.08); border-bottom: 1px solid rgba(14,14,14,0.08);">
+    <div class="max-w-7xl mx-auto">
+      <p class="text-center text-xs uppercase tracking-widest mb-8" style="color: var(--muted);">Integrates with the tools you already use</p>
+      <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40">
+        <div class="flex items-center gap-2">
+          <i class="bi bi-calendar-event text-2xl"></i>
+          <span class="text-sm font-semibold">Eventbrite</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="bi bi-heart text-2xl"></i>
+          <span class="text-sm font-semibold">Bumble</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="bi bi-people text-2xl"></i>
+          <span class="text-sm font-semibold">Meetup</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="bi bi-briefcase text-2xl"></i>
+          <span class="text-sm font-semibold">LinkedIn</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="bi bi-building text-2xl"></i>
+          <span class="text-sm font-semibold">Hinge</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="relative dark-section py-28 px-6 lg:px-16 overflow-hidden">
+    <div class="max-w-7xl mx-auto relative z-10">
+      <div class="grid lg:grid-cols-2 gap-20 items-start">
+        <!-- Left: steps -->
+        <div>
+          <div class="flex items-center gap-3 mb-8">
+            <span class="accent-line"></span>
+            <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">The Process</span>
+          </div>
+          <h2 class="font-display text-4xl md:text-5xl leading-tight mb-16" style="color: var(--cream);">
+            Three steps to<br/><em>total control.</em>
+          </h2>
+
+          <div class="space-y-12">
+            <div class="flex gap-6 fade-up">
+              <div class="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center font-display text-lg font-bold" style="background: rgba(200,169,110,0.15); color: var(--accent);">01</div>
+              <div>
+                <h3 class="font-semibold text-lg mb-2" style="color: var(--cream);">Build your Circles</h3>
+                <p class="text-sm leading-relaxed" style="color: rgba(245,240,232,0.55);">Create distinct profiles for every context — Work, Social, Dating, Creator. Add exactly which social handles belong in each circle.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-6 fade-up delay-1">
+              <div class="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center font-display text-lg font-bold" style="background: rgba(200,169,110,0.15); color: var(--accent);">02</div>
+              <div>
+                <h3 class="font-semibold text-lg mb-2" style="color: var(--cream);">Share a single link or QR</h3>
+                <p class="text-sm leading-relaxed" style="color: rgba(245,240,232,0.55);">Each circle generates a unique, trackable link or scannable QR code. Share it in person, via text, or through any app.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-6 fade-up delay-2">
+              <div class="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center font-display text-lg font-bold" style="background: rgba(200,169,110,0.15); color: var(--accent);">03</div>
+              <div>
+                <h3 class="font-semibold text-lg mb-2" style="color: var(--cream);">Stay in control, always</h3>
+                <p class="text-sm leading-relaxed" style="color: rgba(245,240,232,0.55);">Update, revoke, or swap profiles at any time. What someone sees today can change tomorrow — without an awkward conversation.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: circle visual -->
+        <div class="flex items-center justify-center">
+          <div class="relative w-72 h-72 md:w-96 md:h-96">
+            <!-- Outer ring -->
+            <div class="absolute inset-0 rounded-full border" style="border-color: rgba(200,169,110,0.15); animation: spin-slow 20s linear infinite;"></div>
+            <!-- Mid ring -->
+            <div class="absolute inset-8 rounded-full border" style="border-color: rgba(200,169,110,0.25); animation: spin-slow 14s linear infinite reverse;"></div>
+            <!-- Inner ring -->
+            <div class="absolute inset-16 rounded-full border" style="border-color: rgba(200,169,110,0.40);"></div>
+
+            <!-- Center -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="profile-card-dark rounded-2xl p-5 text-center">
+                <div class="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center font-bold text-xl" style="background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: white;">A</div>
+                <p class="text-sm font-semibold" style="color: var(--cream);">Alex Rivera</p>
+                <p class="text-xs mt-1" style="color: rgba(245,240,232,0.45);">Sharing: Work Circle</p>
+              </div>
+            </div>
+
+            <!-- Orbiting icons -->
+            <div class="absolute" style="top: 2px; left: 50%; transform: translateX(-50%);">
+              <div class="w-10 h-10 rounded-full profile-card-dark flex items-center justify-center">
+                <i class="bi bi-linkedin" style="color: #0077B5;"></i>
+              </div>
+            </div>
+            <div class="absolute" style="top: 50%; right: 2px; transform: translateY(-50%);">
+              <div class="w-10 h-10 rounded-full profile-card-dark flex items-center justify-center">
+                <i class="bi bi-twitter-x" style="color: #1DA1F2;"></i>
+              </div>
+            </div>
+            <div class="absolute" style="bottom: 2px; left: 50%; transform: translateX(-50%);">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(30,28,24,0.85); border: 1px solid rgba(200,169,110,0.2);">
+                <i class="bi bi-instagram" style="color: #cc2366; opacity: 0.3;"></i>
+              </div>
+            </div>
+            <div class="absolute" style="top: 50%; left: 2px; transform: translateY(-50%);">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(30,28,24,0.85); border: 1px solid rgba(200,169,110,0.2);">
+                <i class="bi bi-tiktok" style="color: var(--cream); opacity: 0.3;"></i>
+              </div>
+            </div>
+
+            <!-- Lock badge -->
+            <div class="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
+              <div class="profile-card-dark rounded-full px-4 py-2 flex items-center gap-2">
+                <i class="bi bi-lock-fill text-xs" style="color: var(--accent);"></i>
+                <span class="text-xs font-medium" style="color: var(--cream);">2 hidden</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="py-28 px-6 lg:px-16">
+    <div class="max-w-7xl mx-auto">
+      <div class="max-w-xl mb-20">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="accent-line"></span>
+          <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">Why Circles</span>
+        </div>
+        <h2 class="font-display text-4xl md:text-5xl leading-tight" style="color: var(--ink);">
+          Privacy that doesn't<br/><em>slow you down.</em>
+        </h2>
+      </div>
+
+      <!-- Asymmetric feature layout -->
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Feature 1 — large -->
+        <div class="md:col-span-2 relative overflow-hidden rounded-3xl p-10 fade-up" style="background: var(--ink); min-height: 320px;">
+          <span class="feature-num">1</span>
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style="background: rgba(200,169,110,0.15);">
+            <i class="bi bi-diagram-3 text-xl" style="color: var(--accent);"></i>
+          </div>
+          <h3 class="font-display text-2xl mb-3" style="color: var(--cream);">Multiple Circles,<br/>One Identity</h3>
+          <p class="text-sm leading-relaxed max-w-sm" style="color: rgba(245,240,232,0.55);">Create unlimited context-based profiles. Your Work circle shows LinkedIn and GitHub. Your Social circle shows Instagram and Spotify. Your choice, every time.</p>
+          <div class="mt-8 flex flex-wrap gap-2">
+            <span class="social-pill" style="background: rgba(200,169,110,0.12); color: var(--accent);">
+              <i class="bi bi-briefcase-fill"></i> Work
+            </span>
+            <span class="social-pill" style="background: rgba(200,169,110,0.08); color: rgba(200,169,110,0.7);">
+              <i class="bi bi-heart-fill"></i> Social
+            </span>
+            <span class="social-pill" style="background: rgba(200,169,110,0.08); color: rgba(200,169,110,0.7);">
+              <i class="bi bi-star-fill"></i> Creator
+            </span>
+            <span class="social-pill" style="background: rgba(200,169,110,0.08); color: rgba(200,169,110,0.7);">
+              <i class="bi bi-plus text-lg"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- Feature 2 — tall -->
+        <div class="relative overflow-hidden rounded-3xl p-8 fade-up delay-1" style="background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.15);">
+          <span class="feature-num">2</span>
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style="background: var(--ink);">
+            <i class="bi bi-qr-code-scan text-xl" style="color: var(--accent);"></i>
+          </div>
+          <h3 class="font-display text-2xl mb-3" style="color: var(--ink);">Smart QR & Link Sharing</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">Generate a scannable QR or a clean short link per circle. No app required to receive — anyone can view your chosen profiles in seconds.</p>
+          <!-- QR mockup -->
+          <div class="mt-8 mx-auto w-28 h-28 rounded-xl flex items-center justify-center" style="background: white; box-shadow: 0 8px 32px rgba(14,14,14,0.1);">
+            <i class="bi bi-qr-code" style="font-size: 4rem; color: var(--ink);"></i>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="relative overflow-hidden rounded-3xl p-8 fade-up delay-2" style="background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.15);">
+          <span class="feature-num">3</span>
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style="background: var(--ink);">
+            <i class="bi bi-eye-slash text-xl" style="color: var(--accent);"></i>
+          </div>
+          <h3 class="font-display text-2xl mb-3" style="color: var(--ink);">Revoke Anytime</h3>
+          <p class="text-sm leading-relaxed" style="color: var(--muted);">Changed your mind? Disable a circle or remove specific accounts from any share instantly. No awkward unfollow needed.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="relative overflow-hidden rounded-3xl p-8 fade-up delay-3" style="background: var(--ink);">
+          <span class="feature-num">4</span>
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style="background: rgba(200,169,110,0.15);">
+            <i class="bi bi-graph-up-arrow text-xl" style="color: var(--accent);"></i>
+          </div>
+          <h3 class="font-display text-2xl mb-3" style="color: var(--cream);">Connection Analytics</h3>
+          <p class="text-sm leading-relaxed" style="color: rgba(245,240,232,0.55);">See who viewed your circle, which profiles got clicks, and when. Perfect for creators, sales pros, and active networkers.</p>
+          <!-- Mini chart mockup -->
+          <div class="mt-6 flex items-end gap-2 h-12">
+            <div class="flex-1 rounded-sm" style="height: 40%; background: rgba(200,169,110,0.3);"></div>
+            <div class="flex-1 rounded-sm" style="height: 65%; background: rgba(200,169,110,0.5);"></div>
+            <div class="flex-1 rounded-sm" style="height: 45%; background: rgba(200,169,110,0.3);"></div>
+            <div class="flex-1 rounded-sm" style="height: 80%; background: var(--accent);"></div>
+            <div class="flex-1 rounded-sm" style="height: 55%; background: rgba(200,169,110,0.4);"></div>
+            <div class="flex-1 rounded-sm" style="height: 100%; background: var(--accent);"></div>
+            <div class="flex-1 rounded-sm" style="height: 70%; background: rgba(200,169,110,0.5);"></div>
+          </div>
+        </div>
+
+        <!-- Feature 5 — wide -->
+        <div class="md:col-span-3 relative overflow-hidden rounded-3xl p-10 fade-up" style="background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.15);">
+          <div class="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <span class="feature-num">5</span>
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style="background: var(--ink);">
+                <i class="bi bi-puzzle text-xl" style="color: var(--accent);"></i>
+              </div>
+              <h3 class="font-display text-2xl mb-3" style="color: var(--ink);">Deep App Integrations</h3>
+              <p class="text-sm leading-relaxed max-w-md" style="color: var(--muted);">Circles connects natively inside dating apps, event platforms, and professional tools. Share your curated profile at the moment of connection — without leaving the app.</p>
+            </div>
+            <div class="flex flex-wrap gap-4 justify-center md:justify-start">
+              <div class="profile-card rounded-2xl px-5 py-4 flex items-center gap-3">
+                <i class="bi bi-calendar-event text-xl" style="color: var(--accent);"></i>
+                <span class="font-medium text-sm" style="color: var(--ink);">Eventbrite</span>
+              </div>
+              <div class="profile-card rounded-2xl px-5 py-4 flex items-center gap-3">
+                <i class="bi bi-heart text-xl" style="color: var(--accent);"></i>
+                <span class="font-medium text-sm" style="color: var(--ink);">Bumble</span>
+              </div>
+              <div class="profile-card rounded-2xl px-5 py-4 flex items-center gap-3">
+                <i class="bi bi-people text-xl" style="color: var(--accent);"></i>
+                <span class="font-medium text-sm" style="color: var(--ink);">Meetup</span>
+              </div>
+              <div class="profile-card rounded-2xl px-5 py-4 flex items-center gap-3">
+                <i class="bi bi-briefcase text-xl" style="color: var(--accent);"></i>
+                <span class="font-medium text-sm" style="color: var(--ink);">LinkedIn</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="relative py-24 px-6 lg:px-16 overflow-hidden" style="background: var(--warm);">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <div class="flex items-center justify-center gap-3 mb-6">
+          <span class="accent-line"></span>
+          <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">Early Voices</span>
+          <span class="accent-line" style="margin-right: 0; margin-left: 0;"></span>
+        </div>
+        <h2 class="font-display text-4xl md:text-5xl" style="color: var(--ink);">What early users say</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Testimonial 1 -->
+        <div class="profile-card rounded-3xl p-8 fade-up">
+          <i class="bi bi-quote text-4xl mb-4 block" style="color: var(--accent);"></i>
+          <p class="text-sm leading-relaxed mb-6" style="color: var(--muted);">"I used to cringe handing out my Instagram at networking events. Now I share my Work circle, and my personal life stays personal. Game changer."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" style="background: var(--ink);">J</div>
+            <div>
+              <p class="font-semibold text-sm" style="color: var(--ink);">Jamie L.</p>
+              <p class="text-xs" style="color: var(--muted);">UX Consultant</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 2 — elevated -->
+        <div class="profile-card rounded-3xl p-8 fade-up delay-1" style="transform: translateY(-16px);">
+          <i class="bi bi-quote text-4xl mb-4 block" style="color: var(--accent);"></i>
+          <p class="text-sm leading-relaxed mb-6" style="color: var(--muted);">"As a content creator I juggle three different personas. Circles lets me give collaborators the right handles without a 10-message back-and-forth. Love it."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" style="background: var(--accent-deep);">M</div>
+            <div>
+              <p class="font-semibold text-sm" style="color: var(--ink);">Maya R.</p>
+              <p class="text-xs" style="color: var(--muted);">Content Creator</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 3 -->
+        <div class="profile-card rounded-3xl p-8 fade-up delay-2">
+          <i class="bi bi-quote text-4xl mb-4 block" style="color: var(--accent);"></i>
+          <p class="text-sm leading-relaxed mb-6" style="color: var(--muted);">"The QR code at events is brilliant. Scanning someone's Circles profile feels premium — way better than fumbling for a business card or typing handles."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" style="background: #7a7060;">S</div>
+            <div>
+              <p class="font-semibold text-sm" style="color: var(--ink);">Sam K.</p>
+              <p class="text-xs" style="color: var(--muted);">Startup Founder</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="py-28 px-6 lg:px-16">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <div class="flex items-center justify-center gap-3 mb-6">
+          <span class="accent-line"></span>
+          <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">Pricing</span>
+          <span class="accent-line" style="margin-right: 0; margin-left: 0;"></span>
+        </div>
+        <h2 class="font-display text-4xl md:text-5xl mb-4" style="color: var(--ink);">Simple, honest pricing</h2>
+        <p class="text-sm max-w-md mx-auto" style="color: var(--muted);">Start free. Upgrade when you need more control.</p>
+
+        <!-- Toggle -->
+        <div class="flex items-center justify-center gap-4 mt-8">
+          <span class="text-sm font-medium" id="billing-label-monthly" style="color: var(--ink);">Monthly</span>
+          <div id="billing-toggle" class="toggle-switch" onclick="toggleBilling()" data-annual="false"><div class="toggle-knob"></div></div>
+          <span class="text-sm font-medium" id="billing-label-annual" style="color: var(--muted);">Annual <span class="text-xs px-2 py-0.5 rounded-full ml-1" style="background: rgba(200,169,110,0.15); color: var(--accent);">Save 20%</span></span>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <!-- Free -->
+        <div class="price-card profile-card rounded-3xl p-8 fade-up">
+          <p class="text-xs uppercase tracking-widest font-medium mb-3" style="color: var(--muted);">Free</p>
+          <div class="flex items-end gap-1 mb-2">
+            <span class="font-display text-5xl font-bold" style="color: var(--ink);">$0</span>
+            <span class="text-sm mb-2" style="color: var(--muted);">/mo</span>
+          </div>
+          <p class="text-sm mb-8" style="color: var(--muted);">Perfect for getting started</p>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Up to 2 Circles
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              QR code & link sharing
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Up to 5 social accounts
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: rgba(14,14,14,0.35);">
+              <i class="bi bi-x-circle" style="color: rgba(14,14,14,0.2);"></i>
+              Analytics dashboard
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: rgba(14,14,14,0.35);">
+              <i class="bi bi-x-circle" style="color: rgba(14,14,14,0.2);"></i>
+              App integrations
+            </li>
+          </ul>
+          <a href="#" class="block text-center border rounded-xl py-3 text-sm font-semibold hover:bg-black hover:text-white transition-all" style="border-color: rgba(14,14,14,0.2); color: var(--ink);">Get Started Free</a>
+        </div>
+
+        <!-- Pro — highlighted -->
+        <div class="price-card rounded-3xl p-8 relative fade-up delay-1 overflow-hidden" style="background: var(--ink);">
+          <div class="absolute top-5 right-5 px-3 py-1 rounded-full text-xs font-semibold" style="background: var(--accent); color: var(--ink);">Most Popular</div>
+          <p class="text-xs uppercase tracking-widest font-medium mb-3" style="color: var(--accent);">Circles Pro</p>
+          <div class="flex items-end gap-1 mb-2">
+            <span class="font-display text-5xl font-bold" style="color: var(--cream);" id="pro-price">$8</span>
+            <span class="text-sm mb-2" style="color: rgba(245,240,232,0.5);">/mo</span>
+          </div>
+          <p class="text-sm mb-8" style="color: rgba(245,240,232,0.5);">For active networkers & creators</p>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm" style="color: var(--cream);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Unlimited Circles
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--cream);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Unlimited social accounts
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--cream);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Analytics dashboard
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--cream);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              App integrations
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--cream);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Custom link slug
+            </li>
+          </ul>
+          <a href="#" class="block text-center btn-accent rounded-xl py-3 text-sm font-semibold">Start Pro Free Trial</a>
+        </div>
+
+        <!-- Teams -->
+        <div class="price-card profile-card rounded-3xl p-8 fade-up delay-2">
+          <p class="text-xs uppercase tracking-widest font-medium mb-3" style="color: var(--muted);">Teams</p>
+          <div class="flex items-end gap-1 mb-2">
+            <span class="font-display text-5xl font-bold" style="color: var(--ink);" id="teams-price">$24</span>
+            <span class="text-sm mb-2" style="color: var(--muted);">/mo</span>
+          </div>
+          <p class="text-sm mb-8" style="color: var(--muted);">For companies & organizations</p>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Everything in Pro
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Team management console
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Brand kit & custom design
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              Priority support & SLA
+            </li>
+            <li class="flex items-center gap-3 text-sm" style="color: var(--ink);">
+              <i class="bi bi-check-circle-fill" style="color: var(--accent);"></i>
+              SSO & compliance tools
+            </li>
+          </ul>
+          <a href="#" class="block text-center border rounded-xl py-3 text-sm font-semibold hover:bg-black hover:text-white transition-all" style="border-color: rgba(14,14,14,0.2); color: var(--ink);">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="relative py-28 px-6 lg:px-16 overflow-hidden dark-section">
+    <div class="max-w-4xl mx-auto text-center relative z-10">
+      <div class="flex items-center justify-center gap-3 mb-8">
+        <span class="accent-line"></span>
+        <span class="text-xs uppercase tracking-widest font-medium" style="color: var(--accent);">Get Started</span>
+        <span class="accent-line" style="margin-right: 0; margin-left: 0;"></span>
+      </div>
+      <h2 class="font-display text-5xl md:text-6xl leading-tight mb-8" style="color: var(--cream);">
+        Your identity,<br/>
+        <em>your rules.</em>
+      </h2>
+      <p class="text-lg mb-12 max-w-xl mx-auto" style="color: rgba(245,240,232,0.55);">
+        Join thousands of privacy-first professionals who control exactly what the world sees. Start free — no credit card required.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#" class="btn-accent px-8 py-4 rounded-full text-base flex items-center justify-center gap-2.5 group">
+          <i class="bi bi-apple"></i>
+          <span>Download for iOS</span>
+        </a>
+        <a href="#" class="px-8 py-4 rounded-full text-base flex items-center justify-center gap-2.5 border transition-all hover:bg-white/10" style="border-color: rgba(245,240,232,0.2); color: var(--cream);">
+          <i class="bi bi-google-play"></i>
+          <span>Get on Android</span>
+        </a>
+        <a href="#" class="px-8 py-4 rounded-full text-base flex items-center justify-center gap-2.5 border transition-all hover:bg-white/10" style="border-color: rgba(245,240,232,0.2); color: var(--cream);">
+          <i class="bi bi-globe2"></i>
+          <span>Use Web App</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-16 px-6 lg:px-16" style="background: var(--ink);">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid md:grid-cols-4 gap-12 mb-16">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2.5 mb-5">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(200,169,110,0.15);">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="6" stroke="#c8a96e" stroke-width="1.5" fill="none"/>
+                <circle cx="8" cy="8" r="3" stroke="#c8a96e" stroke-width="1.5" fill="none"/>
+                <circle cx="8" cy="8" r="1" fill="#c8a96e"/>
+              </svg>
+            </div>
+            <span class="font-display font-bold text-xl" style="color: var(--cream);">Circles</span>
+          </div>
+          <p class="text-sm leading-relaxed max-w-xs" style="color: rgba(245,240,232,0.45);">Control your digital first impression. Share only the social profiles that matter in each context — nothing more, nothing less.</p>
+          <div class="flex gap-4 mt-6">
+            <a href="#" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all" style="border: 1px solid rgba(245,240,232,0.1);">
+              <i class="bi bi-twitter-x text-sm" style="color: rgba(245,240,232,0.6);"></i>
+            </a>
+            <a href="#" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all" style="border: 1px solid rgba(245,240,232,0.1);">
+              <i class="bi bi-linkedin text-sm" style="color: rgba(245,240,232,0.6);"></i>
+            </a>
+            <a href="#" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-all" style="border: 1px solid rgba(245,240,232,0.1);">
+              <i class="bi bi-instagram text-sm" style="color: rgba(245,240,232,0.6);"></i>
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-xs uppercase tracking-widest font-semibold mb-6" style="color: var(--accent);">Product</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Features</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Pricing</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Integrations</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Changelog</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Roadmap</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs uppercase tracking-widest font-semibold mb-6" style="color: var(--accent);">Company</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">About</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Blog</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Careers</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Privacy Policy</a></li>
+            <li><a href="#" class="text-sm hover-underline" style="color: rgba(245,240,232,0.55);">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between pt-8 gap-4" style="border-top: 1px solid rgba(245,240,232,0.08);">
+        <p class="text-xs" style="color: rgba(245,240,232,0.3);">© 2025 Circles. All rights reserved. Your data, your choice.</p>
+        <div class="flex items-center gap-2 text-xs" style="color: rgba(245,240,232,0.3);">
+          <i class="bi bi-shield-check" style="color: var(--accent);"></i>
+          SOC 2 Compliant · GDPR Ready · End-to-End Encrypted
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // Mobile menu
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+    function closeMobileMenu() {
+      mobileMenu.classList.remove('open');
+    }
+
+    // Toggle switch (hero demo)
+    function toggleSwitch(el) {
+      const isActive = el.dataset.active === 'true';
+      el.dataset.active = (!isActive).toString();
+      if (!isActive) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    }
+
+    // Billing toggle
+    let isAnnual = false;
+    function toggleBilling() {
+      isAnnual = !isAnnual;
+      const toggle = document.getElementById('billing-toggle');
+      const proPrice = document.getElementById('pro-price');
+      const teamsPrice = document.getElementById('teams-price');
+      const labelMonthly = document.getElementById('billing-label-monthly');
+      const labelAnnual = document.getElementById('billing-label-annual');
+
+      if (isAnnual) {
+        toggle.classList.add('active');
+        proPrice.textContent = '$6';
+        teamsPrice.textContent = '$19';
+        labelMonthly.style.color = 'var(--muted)';
+        labelAnnual.style.color = 'var(--ink)';
+      } else {
+        toggle.classList.remove('active');
+        proPrice.textContent = '$8';
+        teamsPrice.textContent = '$24';
+        labelMonthly.style.color = 'var(--ink)';
+        labelAnnual.style.color = 'var(--muted)';
+      }
+    }
+
+    // Intersection Observer for fade-up animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.fade-up').forEach(el => {
+      observer.observe(el);
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
